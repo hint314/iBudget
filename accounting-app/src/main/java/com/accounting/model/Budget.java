@@ -57,7 +57,7 @@ public class Budget {
 
     @SerializedName("periodCount")
     @Column(name = "period_count")
-    private int periodCount = 1;
+    private Integer periodCount;
     
     public Budget() {
         this.id = UUID.randomUUID().toString();
@@ -168,11 +168,11 @@ public class Budget {
         this.periodUnit = periodUnit;
     }
 
-    public int getPeriodCount() {
+    public Integer getPeriodCount() {
         return periodCount;
     }
 
-    public void setPeriodCount(int periodCount) {
+    public void setPeriodCount(Integer periodCount) {
         this.periodCount = periodCount;
     }
 
@@ -184,7 +184,7 @@ public class Budget {
      * 预算结束日期（包含）
      */
     public LocalDate getEndDate() {
-        if (startDate == null || periodUnit == null || periodCount <= 0) return null;
+        if (startDate == null || periodUnit == null || periodCount == null || periodCount <= 0) return null;
         switch (periodUnit) {
             case DAYS:
                 return startDate.plusDays(periodCount - 1);

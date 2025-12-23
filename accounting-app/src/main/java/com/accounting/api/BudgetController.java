@@ -50,7 +50,14 @@ public class BudgetController {
             b.setMonth(month);
             b.setStartDate(LocalDate.parse((String) body.get("startDate")));
             b.setPeriodUnit(Budget.PeriodUnit.valueOf((String) body.get("periodUnit")));
-            b.setPeriodCount(Integer.parseInt(String.valueOf(body.getOrDefault("periodCount", 1))));
+            
+            // 处理periodCount,确保有默认值
+            Integer periodCount = 1;
+            if (body.containsKey("periodCount") && body.get("periodCount") != null) {
+                periodCount = Integer.parseInt(String.valueOf(body.get("periodCount")));
+            }
+            b.setPeriodCount(periodCount);
+            
             return ResponseEntity.ok(budgetService.addBudget(b));
         } else {
             // 月度预算
