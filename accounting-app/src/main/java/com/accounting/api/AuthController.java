@@ -30,16 +30,48 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
         String username = body.get("username");
-        String email = body.getOrDefault("email", "");
         String password = body.get("password");
+        String confirmPassword = body.get("confirmPassword");
+        
         if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "invalid_input"));
         }
+        
+        if (!password.equals(confirmPassword)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "passwords_do_not_match"));
+        }
+
         try {
-            var u = userService.register(username.trim(), email, password);
-            return ResponseEntity.ok(Map.of("id", u.getId(), "username", u.getUsername()));
+            var u = userService.register(username.trim(), password);
+            return ResponseEntity.ok(Map.of(
+                "id", u.getId(), 
+                "username", u.getUsername(),
+                "recoveryKey", u.getRecoveryKey()
+            ));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(Map.of("error", "username_exists"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "server_error"));
+        }
+    }
+    
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String recoveryKey = body.get("recoveryKey");
+        String newPassword = body.get("newPassword");
+        
+        if (username == null || recoveryKey == null || newPassword == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "invalid_input"));
+        }
+        
+        try {
+            userService.resetPassword(username.trim(), recoveryKey.trim(), newPassword);
+            return ResponseEntity.ok(Map.of("message", "password_reset_success"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "server_error"));
         }

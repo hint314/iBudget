@@ -61,10 +61,10 @@ public class MainApplication extends Application {
         authBox.setStyle("-fx-padding: 16px;");
         TextField username = new TextField();
         username.setPromptText("用户名");
-        TextField email = new TextField();
-        email.setPromptText("邮箱");
         TextField password = new TextField();
         password.setPromptText("密码");
+        TextField confirmPassword = new TextField();
+        confirmPassword.setPromptText("确认密码");
         Label authStatus = new Label("未登录");
         Button btnRegister = new Button("注册");
         btnRegister.getStyleClass().add("button");
@@ -73,7 +73,11 @@ public class MainApplication extends Application {
         btnLogin.getStyleClass().add("primary");
         btnRegister.setOnAction(e -> {
             try {
-                api.register(username.getText(), email.getText(), password.getText());
+                if (!password.getText().equals(confirmPassword.getText())) {
+                    authStatus.setText("密码不一致");
+                    return;
+                }
+                api.register(username.getText(), password.getText(), confirmPassword.getText());
                 authStatus.setText("注册成功");
             } catch (Exception ex) {
                 authStatus.setText("注册失败");
@@ -87,7 +91,7 @@ public class MainApplication extends Application {
                 authStatus.setText("登录失败");
             }
         });
-        HBox authInputs = new HBox(username, email, password);
+        HBox authInputs = new HBox(username, password, confirmPassword);
         authInputs.setSpacing(10);
         HBox authActions = new HBox(btnRegister, btnLogin);
         authActions.setSpacing(10);

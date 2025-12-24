@@ -20,9 +20,6 @@ public class User {
     @SerializedName("username")
     private String username;
     
-    @SerializedName("email")
-    private String email;
-    
     @SerializedName("passwordHash")
     private String passwordHash; // 密码哈希值
     
@@ -35,16 +32,27 @@ public class User {
     @SerializedName("deviceId")
     private String deviceId; // 设备标识
     
+    @SerializedName("recoveryKey")
+    private String recoveryKey; // 恢复密钥
+    
     public User() {
         this.id = UUID.randomUUID().toString();
         this.createdAt = LocalDateTime.now();
+        this.recoveryKey = UUID.randomUUID().toString().substring(0, 8); // 8位随机恢复密钥
     }
     
-    public User(String username, String email, String passwordHash) {
+    public User(String username, String passwordHash) {
         this();
         this.username = username;
-        this.email = email;
         this.passwordHash = passwordHash;
+    }
+
+    public String getRecoveryKey() {
+        return recoveryKey;
+    }
+
+    public void setRecoveryKey(String recoveryKey) {
+        this.recoveryKey = recoveryKey;
     }
     
     public String getId() {
@@ -61,14 +69,6 @@ public class User {
     
     public void setUsername(String username) {
         this.username = username;
-    }
-    
-    public String getEmail() {
-        return email;
-    }
-    
-    public void setEmail(String email) {
-        this.email = email;
     }
     
     public String getPasswordHash() {
@@ -108,7 +108,6 @@ public class User {
         return "User{" +
                 "id='" + id + '\'' +
                 ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
                 '}';
     }
 }

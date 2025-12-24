@@ -19,9 +19,9 @@ public class ApiClient {
     public ApiClient(String baseUrl) {
         this.baseUrl = baseUrl;
     }
-    public Map<String,Object> register(String username, String email, String password) {
+    public Map<String,Object> register(String username, String password, String confirmPassword) {
         try {
-            String body = mapper.writeValueAsString(Map.of("username", username, "email", email, "password", password));
+            String body = mapper.writeValueAsString(Map.of("username", username, "password", password, "confirmPassword", confirmPassword));
             HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + "/api/auth/register"))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
