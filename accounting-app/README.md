@@ -1,39 +1,39 @@
-# iBudget 记账应用
+# iBudget 记账应用 💰
 
 一个面向个人与家庭的记账应用，包含 Web 前端与桌面端。支持用户认证、账目与预算管理、离线优先同步、统计与图表展示。
 
-## 项目概述
+## 🧩 项目概述
 
 - 架构：Spring Boot + JPA/SQLite + 原生 HTML/JS + JavaFX
 - 模块：认证、交易、预算、同步、统计、桌面客户端
 - 目标：简单、可靠、可离线工作，支持多设备同步
 
-## 功能列表
+## ✨ 功能列表
 
-- 用户与认证
+- 👤 用户与认证
   - 注册（强密码校验与二次确认）
   - 登录/登出（JWT `accessToken`/`refreshToken`）
   - 恢复密钥重置密码（注册时自动生成 8 位）
   - 多设备会话管理（最多 5 台）
-- 账目管理
+- 📒 账目管理
   - 新增/编辑/删除交易，筛选与列表
-- 预算管理
+- 🎯 预算管理
   - 月度预算与分类预算，超额提醒
-- 数据同步
+- 🔄 数据同步
   - 增量拉取与推送，LWW 冲突解决
-- 统计与图表
+- 📊 统计与图表
   - 趋势、分类占比、收支曲线等
-- 桌面端
+- 🖥️ 桌面端
   - JavaFX UI，基础账目与同步
 
-## 技术栈
+## 🛠️ 技术栈
 
 - 后端：Spring Boot 3.1.5、Spring Security、JPA/Hibernate、SQLite
 - 前端：HTML5、CSS3、原生 JavaScript
 - 桌面：JavaFX 21
 - 构建：Maven
 
-## 目录结构
+## 🗂️ 目录结构
 
 ```
 accounting-app/
@@ -104,7 +104,7 @@ accounting-app/
 └── README.md
 ```
 
-## 快速开始
+## 🚀 快速开始
 
 - 前置环境
   - `JDK 17+`、`Maven 3.6+`、现代浏览器
@@ -116,7 +116,7 @@ accounting-app/
 - 启动桌面端（Windows）
   - `run-desktop.bat`
 
-## 配置说明
+## ⚙️ 配置说明
 
 - `src/main/resources/application.properties`
   - `server.port=8080`
@@ -126,13 +126,13 @@ accounting-app/
   - `jwt.secret=${JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}`
   - 建议在系统环境中设置 `JWT_SECRET`
 
-## 页面与交互
+## 🧭 页面与交互
 
 - `login.html` 登录：用户名/密码，登录成功保存 `token` 到 `localStorage`
 - `register.html` 注册：用户名、密码与确认；成功后弹窗展示恢复密钥
 - 其他：`transactions.html`、`budgets.html`、`trends.html`、`charts.html`、`dashboard.html`
 
-## API 概览
+## 🔌 API 概览
 
 - 认证
   - `POST /api/auth/register` 注册（`username`, `password`, `confirmPassword`）→ 返回 `recoveryKey`
@@ -153,13 +153,13 @@ accounting-app/
   - `GET/POST/PUT /api/budgets`
   - `GET /api/stats/...` 统计数据
 
-## 同步机制
+## 🔄 同步机制
 
 - 增量同步：客户端携带 `lastVersion`，服务端返回变更与当前版本
 - 冲突解决：按 `updatedAt` 进行 LWW（最后写入胜出）
 - 变更日志：持久化 `SyncLog`，供其他设备拉取
 
-## 安全设计
+## 🔐 安全设计
 
 - BCrypt 密码哈希存储
 - JWT 无状态鉴权（HMAC-SHA256）
@@ -167,7 +167,7 @@ accounting-app/
 - 多设备治理（最多 5 个刷新令牌，超限清理旧会话）
 - 输入校验与错误响应：Controller 层统一校验与标准错误码
 
-## 开发说明
+## 🧑‍💻 开发说明
 
 - 分层职责：Controller（HTTP）、Service（业务）、Repository（数据）、Model（实体）
 - 编译/运行
@@ -178,7 +178,7 @@ accounting-app/
 - 环境变量
   - `JWT_SECRET` 用于签发 JWT，生产环境务必设置
 
-## 许可证
+## 📄 许可证
 
 本项目用于学习与个人使用。
 
