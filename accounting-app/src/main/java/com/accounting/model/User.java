@@ -8,37 +8,50 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 用户实体类
+ * 用户实体类 (User Entity)
+ * <p>
+ * 对应数据库中的 'users' 表。
+ * 存储用户的核心身份信息。
+ * 注意：本系统不存储用户明文密码，仅存储加盐哈希值。
+ * </p>
  */
 @Entity
 @Table(name = "users")
 public class User {
     @Id
     @SerializedName("id")
-    private String id;
+    private String id; // UUID 主键
     
     @SerializedName("username")
     private String username;
     
     @SerializedName("passwordHash")
-    private String passwordHash; // 密码哈希值
+    private String passwordHash; // 经过 BCrypt 加密的密码哈希，绝不存储明文
     
     @SerializedName("createdAt")
     private LocalDateTime createdAt;
     
     @SerializedName("lastSyncAt")
-    private LocalDateTime lastSyncAt;
+    private LocalDateTime lastSyncAt; // 上次同步时间
     
     @SerializedName("deviceId")
-    private String deviceId; // 设备标识
+    private String deviceId; // 注册设备标识
     
+    /**
+     * 恢复密钥 (Recovery Key)
+     * <p>
+     * 这是一个随机生成的 8 位字符串，作为用户找回密码的唯一凭证。
+     * 当用户注册成功时生成，当用户重置密码成功后会自动更新。
+     * </p>
+     */
     @SerializedName("recoveryKey")
-    private String recoveryKey; // 恢复密钥
+    private String recoveryKey; 
     
     public User() {
         this.id = UUID.randomUUID().toString();
         this.createdAt = LocalDateTime.now();
-        this.recoveryKey = UUID.randomUUID().toString().substring(0, 8); // 8位随机恢复密钥
+        // 默认生成 8 位随机字符作为恢复密钥
+        this.recoveryKey = UUID.randomUUID().toString().substring(0, 8); 
     }
     
     public User(String username, String passwordHash) {

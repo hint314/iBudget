@@ -13,13 +13,26 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
+/**
+ * 认证控制器 (Authentication Controller)
+ * <p>
+ * 负责处理所有与用户身份认证相关的 HTTP 请求。
+ * 核心功能包括：
+ * 1. 用户注册 (Register)：创建新用户并分发恢复密钥。
+ * 2. 用户登录 (Login)：验证身份并签发双 Token (Access + Refresh)。
+ * 3. 令牌刷新 (Refresh Token)：通过长效 Token 换取新的短效 Token，实现无感续期。
+ * 4. 密码重置 (Reset Password)：通过恢复密钥重置用户密码。
+ * </p>
+ */
 public class AuthController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
     private final UserTokenRepository userTokenRepository;
     
-    private static final long ACCESS_TOKEN_TTL = 30 * 60 * 1000; // 30 mins
-    private static final long REFRESH_TOKEN_TTL = 7L * 24 * 60 * 60 * 1000; // 7 days
+    // 短效 Access Token 有效期：30分钟
+    private static final long ACCESS_TOKEN_TTL = 30 * 60 * 1000; 
+    // 长效 Refresh Token 有效期：7天
+    private static final long REFRESH_TOKEN_TTL = 7L * 24 * 60 * 60 * 1000; 
     
     public AuthController(UserService userService, JwtUtil jwtUtil, UserTokenRepository userTokenRepository) {
         this.userService = userService;
@@ -27,22 +40,36 @@ public class AuthController {
         this.userTokenRepository = userTokenRepository;
     }
     
+    /**
+     * 用户注册接口
+     * <p>
+     * 接收用户名和密码，进行二次确认校验后创建用户。
+     * 注册成功后，必须返回生成的【恢复密钥】，这是用户找回密码的唯一凭证。
+     * </p>
+     * @param body 包含 username, password, confirmPassword 的 JSON 对象
+     * @return 注册成功的用户信息（包含 recoveryKey）或错误提示
+     */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
         String username = body.get("username");
         String password = body.get("password");
         String confirmPassword = body.get("confirmPassword");
         
+        // 基础非空校验：防止无效请求进入业务层
         if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "invalid_input"));
         }
         
+        // 密码一致性校验：防止用户手误
         if (!password.equals(confirmPassword)) {
             return ResponseEntity.badRequest().body(Map.of("error", "passwords_do_not_match"));
         }
 
         try {
+            // 调用 Service 层执行核心注册逻辑
             var u = userService.register(username.trim(), password);
+            
+            // 返回关键信息，特别是 recoveryKey，前端需弹窗提示用户保存
             return ResponseEntity.ok(Map.of(
                 "id", u.getId(), 
                 "username", u.getUsername(),
@@ -57,6 +84,13 @@ public class AuthController {
         }
     }
     
+    /**
+     * 密码重置接口
+     * <p>
+     * 当用户忘记密码时调用。
+     * 安全机制：必须提供注册时生成的【恢复密钥】才能重置，不依赖邮箱或手机号。
+     * </p>
+     */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
         String username = body.get("username");
@@ -68,6 +102,7 @@ public class AuthController {
         }
         
         try {
+            // 调用 Service 层验证密钥并更新密码
             userService.resetPassword(username.trim(), recoveryKey.trim(), newPassword);
             return ResponseEntity.ok(Map.of("message", "password_reset_success"));
         } catch (IllegalArgumentException e) {
@@ -77,25 +112,37 @@ public class AuthController {
         }
     }
     
+    /**
+     * 用户登录接口
+     * <p>
+     * 验证用户名密码，成功后签发双 Token。
+     * 1. Access Token: 用于访问 API，有效期短。
+     * 2. Refresh Token: 用于刷新 Access Token，有效期长，绑定设备 ID。
+     * 同时实现了多设备登录管理（最多允许 5 个设备同时在线）。
+     * </p>
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         String username = body.get("username");
         String password = body.get("password");
+        // 获取设备标识，用于多端会话管理（默认为 unknown）
         String deviceId = body.getOrDefault("deviceId", "unknown");
         
         if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "invalid_input"));
         }
+        
+        // 验证凭据
         var opt = userService.login(username, password);
-        if (opt.isEmpty()) return ResponseEntity.status(401).build();
+        if (opt.isEmpty()) return ResponseEntity.status(401).build(); // 认证失败
         
         var user = opt.get();
         
-        // 生成双Token：短效AccessToken与长效RefreshToken（主体为userId以确保接口按用户识别）
+        // 生成双Token机制：短效 AccessToken 用于接口鉴权，长效 RefreshToken 用于会话续期
         String accessToken = jwtUtil.generate(user.getId(), ACCESS_TOKEN_TTL);
-        String refreshToken = UUID.randomUUID().toString(); // Opaque refresh token
+        String refreshToken = UUID.randomUUID().toString(); // 随机生成不透明字符串作为刷新令牌
         
-        // 保存刷新Token到数据库，绑定设备ID
+        // 将 Refresh Token 持久化到数据库，实现服务端可控（如强制下线）
         UserToken userToken = new UserToken(
             user.getId(),
             refreshToken,
@@ -103,18 +150,21 @@ public class AuthController {
             LocalDateTime.now().plusDays(7)
         );
         userTokenRepository.save(userToken);
-        // 多端管理（上限5台）：超过上限时，保留最近续期的5个，其余移除
+        
+        // 多端会话治理策略：
+        // 限制每个用户最多 5 个活跃会话。
+        // 如果超过限制，按过期时间排序，踢掉最旧的会话（FIFO）。
         var tokens = userTokenRepository.findByUserId(user.getId());
         if (tokens.size() > 5) {
             tokens.stream()
-                    .sorted((a, b) -> b.getExpiryDate().compareTo(a.getExpiryDate()))
+                    .sorted((a, b) -> b.getExpiryDate().compareTo(a.getExpiryDate())) // 按过期时间降序（保留最新的）
                     .skip(5)
                     .forEach(userTokenRepository::delete);
         }
         
         return ResponseEntity.ok(Map.of(
             "accessToken", accessToken,
-            "token", accessToken, // 为兼容前端，额外返回token字段（同accessToken）
+            "token", accessToken, // 兼容性字段
             "refreshToken", refreshToken,
             "userId", user.getId(),
             "username", user.getUsername()
